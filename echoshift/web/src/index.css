@@ -1,0 +1,48 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+
+  /* App Sizing Specs (Template tokens --paper, --ink, --accent, --muted, --line are owned by FreeAppStore) */
+  --sidebar-w: 17rem;
+  --radius-card: 1.25rem;
+  --radius-button: 0.75rem;
+  --pad-card: 1.5rem;
+  --gap-grid: 1.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--paper, #fbfaf6);
+  color: var(--ink, #191b1f);
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fraunces for headlines and card titles */
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+/* Manrope for body, labels, and UI controls */
+.font-body {
+  font-family: 'Manrope', system-ui, sans-serif;
+}
+
+/* Safe-area insets */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}

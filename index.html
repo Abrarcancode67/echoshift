@@ -1,0 +1,3006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>EchoShift - Real-Time Voice Changer & Audio Visualizer</title>
+  <meta name="description" content="In-Browser Real-Time Voice Changer & Audio Visualizer with live effects, spoken voice demos, recording, and waveform display.">
+  <meta property="og:title" content="EchoShift - Real-Time Voice Changer & Audio Visualizer">
+  <meta property="og:description" content="In-Browser Real-Time Voice Changer & Audio Visualizer with live effects, spoken voice demos, recording, and waveform display.">
+
+  <!-- PWA & Color Scheme Meta Tags for FreeAppStore -->
+  <meta name="theme-color" content="#090d16">
+  <meta name="color-scheme" content="light dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EchoShift">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icon.svg">
+  <link rel="apple-touch-icon" href="/icon.svg">
+
+  <!-- FreeAppStore Platform Analytics Loader -->
+  <script src="https://api.freeappstore.online/v1/analytics.js?app=echoshift" defer></script>
+
+  <!-- Preload Spoken Voice Samples -->
+  <script src="/assets/samples.js"></script>
+
+  <style>
+    /* ==========================================================================
+       EchoShift Studio Theme & Reset
+       Palette: Dark Studio #090d16 | Cards #121927 | Accents #38bdf8 & #818cf8 | Text #f8fafc
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --bg-main: #090d16;
+      --bg-card: #121927;
+      --bg-card-hover: #192337;
+      --bg-input: #0c121d;
+      --border-subtle: #1c273c;
+      --border-active: #38bdf8;
+      --accent-cyan: #38bdf8;
+      --accent-indigo: #818cf8;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --color-danger: #ef4444;
+      --color-success: #10b981;
+      --color-warning: #f59e0b;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      --shadow-card: 0 8px 30px -4px rgba(0, 0, 0, 0.6);
+    }
+
+    html, body {
+      overflow-x: hidden;
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      overflow-x: hidden;
+      max-width: 100vw;
+      box-sizing: border-box;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Layout Wrapper */
+    .app-container {
+      max-width: 1160px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 16px 20px 36px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      box-sizing: border-box;
+      overflow-x: hidden;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: linear-gradient(135deg, var(--accent-cyan), var(--accent-indigo));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 16px rgba(56, 189, 248, 0.35);
+      color: #090d16;
+      flex-shrink: 0;
+    }
+
+    .brand-title h1 {
+      font-size: 1.35rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-title p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--text-dim);
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+
+    .status-dot.active {
+      background-color: var(--color-success);
+      box-shadow: 0 0 10px var(--color-success);
+    }
+
+    .status-dot.recording {
+      background-color: var(--color-danger);
+      box-shadow: 0 0 12px var(--color-danger);
+      animation: pulse-red 1.2s infinite ease-in-out;
+    }
+
+    .status-dot.demo {
+      background-color: var(--accent-cyan);
+      box-shadow: 0 0 10px var(--accent-cyan);
+    }
+
+    @keyframes pulse-red {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Notice Banner */
+    .banner-alert {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.78rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      line-height: 1.4;
+      border: 1px solid transparent;
+      transition: all 0.2s ease;
+    }
+
+    .banner-info {
+      background: rgba(56, 189, 248, 0.08);
+      border-color: rgba(56, 189, 248, 0.25);
+      color: #bae6fd;
+    }
+
+    .banner-warning {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: #fde68a;
+    }
+
+    .banner-success {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: #a7f3d0;
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    @media (min-width: 960px) {
+      .dashboard-grid {
+        grid-template-columns: 1.35fr 1fr;
+      }
+    }
+
+    /* Studio Cards */
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      position: relative;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .card-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    /* Source Selector Box */
+    .source-tabs {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 8px;
+      background: var(--bg-input);
+      padding: 6px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .source-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .source-tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .source-tab-btn.active {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-cyan);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    /* Source Panel Containers */
+    .source-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .source-panel.active {
+      display: flex;
+    }
+
+    /* Spoken Voice Demo Sub-Card Responsive Layout */
+    .spoken-controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .spoken-select-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1 1 auto;
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .spoken-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .spoken-select {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      font-size: 0.78rem;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      outline: none;
+      width: 100%;
+      max-width: 100%;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      box-sizing: border-box;
+      min-width: 0;
+      cursor: pointer;
+    }
+
+    .spoken-select:focus {
+      border-color: var(--accent-cyan);
+    }
+
+    .spoken-select option {
+      background-color: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    .spoken-loop-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      white-space: nowrap;
+      flex-shrink: 0;
+      user-select: none;
+    }
+
+    .spoken-action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .spoken-play-btn {
+      flex-shrink: 0;
+    }
+
+    .spoken-hint-text {
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    /* Visualizer Canvas Area */
+    .canvas-container {
+      position: relative;
+      width: 100%;
+      height: 180px;
+      background: #060910;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    canvas#oscilloscope {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .canvas-overlay-stats {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      font-family: monospace;
+      font-size: 0.72rem;
+      color: var(--accent-cyan);
+      background: rgba(9, 13, 22, 0.85);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      display: flex;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .canvas-mode-toggle {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      display: flex;
+      background: rgba(9, 13, 22, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .canvas-mode-toggle button {
+      background: transparent;
+      border: none;
+      color: var(--text-dim);
+      font-size: 0.68rem;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .canvas-mode-toggle button.active {
+      background: var(--accent-cyan);
+      color: #090d16;
+    }
+
+    /* Interactive Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      user-select: none;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    .btn-primary {
+      background: var(--accent-cyan);
+      color: #090d16;
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: #7dd3fc;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.4);
+    }
+
+    .btn-secondary {
+      background: var(--bg-card-hover);
+      color: var(--text-main);
+      border-color: var(--border-subtle);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: #24324f;
+      border-color: var(--text-dim);
+    }
+
+    .btn-danger {
+      background: var(--color-danger);
+      color: #fff;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      background: #dc2626;
+    }
+
+    .btn-warning {
+      background: var(--color-warning);
+      color: #090d16;
+    }
+
+    .btn-warning:hover:not(:disabled) {
+      background: #f59e0b;
+    }
+
+    .btn-success {
+      background: var(--color-success);
+      color: #090d16;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #34d399;
+    }
+
+    /* Monitor & Volume Control Section */
+    .monitor-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .monitor-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .slider-header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .slider-value {
+      font-family: monospace;
+      color: var(--accent-cyan);
+      font-weight: bold;
+    }
+
+    input[type="range"] {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 6px;
+      border-radius: var(--radius-full);
+      background: #1c273c;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+      transition: transform 0.15s;
+    }
+
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    .quick-vol-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .quick-vol-btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quick-vol-btn:hover {
+      color: var(--text-main);
+      border-color: var(--text-dim);
+    }
+
+    /* Filter Presets Selection */
+    .presets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 10px;
+      max-height: 520px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .presets-grid::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .presets-grid::-webkit-scrollbar-track {
+      background: #0c121d;
+      border-radius: 4px;
+    }
+
+    .presets-grid::-webkit-scrollbar-thumb {
+      background: #1c273c;
+      border-radius: 4px;
+    }
+
+    .presets-grid::-webkit-scrollbar-thumb:hover {
+      background: var(--accent-cyan);
+    }
+
+    .preset-card {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      position: relative;
+    }
+
+    .preset-card:hover {
+      border-color: var(--text-dim);
+      background: var(--bg-card-hover);
+      transform: translateY(-1px);
+    }
+
+    .preset-card.active {
+      border-color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.1);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+    }
+
+    .preset-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      background: rgba(129, 140, 248, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent-indigo);
+      transition: all 0.2s;
+    }
+
+    .preset-card.active .preset-icon {
+      background: var(--accent-cyan);
+      color: #090d16;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+    }
+
+    .preset-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .preset-desc {
+      font-size: 0.67rem;
+      color: var(--text-muted);
+      line-height: 1.25;
+    }
+
+    .preset-tag {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      font-size: 0.6rem;
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--accent-cyan);
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-weight: 600;
+    }
+
+    /* Recording & Export Box */
+    .recording-box {
+      background: var(--bg-input);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .recording-timer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: monospace;
+      font-size: 1.1rem;
+      font-weight: bold;
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      background: #080c16;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .rec-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      font-family: system-ui, sans-serif;
+      color: var(--color-danger);
+    }
+
+    audio#audioPlayer {
+      width: 100%;
+      height: 38px;
+      border-radius: var(--radius-sm);
+      outline: none;
+    }
+
+    /* Quick 3s Loop Progress bar */
+    .progress-bar-container {
+      width: 100%;
+      height: 6px;
+      background: #1c273c;
+      border-radius: 4px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-indigo));
+      transition: width 0.1s linear;
+    }
+
+    /* File Drop Area */
+    .file-drop-zone {
+      border: 1px dashed var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-drop-zone:hover, .file-drop-zone.dragover {
+      border-color: var(--accent-cyan);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    /* Footer */
+    footer {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 0.74rem;
+      color: var(--text-dim);
+      padding-top: 14px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .app-container {
+        padding: 12px 12px 24px 12px;
+      }
+      .card {
+        padding: 14px;
+      }
+      .presets-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .canvas-container {
+        height: 160px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .spoken-controls-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+      .spoken-select-group {
+        flex-direction: column;
+        align-items: stretch;
+        width: 100%;
+        gap: 6px;
+      }
+      .spoken-label {
+        align-self: flex-start;
+      }
+      .spoken-select {
+        width: 100%;
+        max-width: 100%;
+      }
+      .spoken-loop-label {
+        align-self: flex-start;
+      }
+      .spoken-action-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+      .spoken-play-btn {
+        width: 100%;
+      }
+      .source-tabs {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header>
+      <div class="brand-section">
+        <div class="brand-logo" aria-hidden="true">
+          <!-- Voice wave SVG -->
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/>
+          </svg>
+        </div>
+        <div class="brand-title">
+          <h1>EchoShift</h1>
+          <p>Real-Time In-Browser Voice Changer & Oscilloscope</p>
+        </div>
+      </div>
+
+      <div class="status-badge" id="engineStatusBadge">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Engine Idle &bull; Select Sound Source Below</span>
+      </div>
+    </header>
+
+    <!-- Notice Banner -->
+    <div id="noticeBanner" class="banner-alert banner-info">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 1px;">
+        <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+      </svg>
+      <div id="noticeText">
+        Welcome to EchoShift! Click <strong>"Play Spoken Demo"</strong> to audition voice effects immediately with real spoken words, or click <strong>"Enable Mic"</strong> for live microphone transformation!
+      </div>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="dashboard-grid">
+      <!-- Left Column: Audio Source & Visualizer -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="2"/>
+              <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14"/>
+            </svg>
+            1. Audio Sound Source
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-dim);" id="sampleRateLabel">48.0 kHz</span>
+        </div>
+
+        <!-- Source Selector Tabs -->
+        <div class="source-tabs">
+          <button class="source-tab-btn active" id="tabBtnSpoken" onclick="switchSourceTab('spoken')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+              <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            </svg>
+            Spoken Voice Demo
+          </button>
+          <button class="source-tab-btn" id="tabBtnMic" onclick="switchSourceTab('mic')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+            </svg>
+            Live Microphone
+          </button>
+          <button class="source-tab-btn" id="tabBtnQuickLoop" onclick="switchSourceTab('quickloop')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            3s Quick Test Loop
+          </button>
+          <button class="source-tab-btn" id="tabBtnUpload" onclick="switchSourceTab('upload')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Upload Audio File
+          </button>
+        </div>
+
+        <!-- Panel 1: Spoken Voice Demo (Real Human Voice) -->
+        <div class="source-panel active" id="panelSpoken">
+          <div class="spoken-controls-row">
+            <div class="spoken-select-group">
+              <label for="demoVoiceSelect" class="spoken-label">Spoken Clip:</label>
+              <select id="demoVoiceSelect" class="spoken-select">
+                <option value="female">Clear Voice A ("Hello! This is a test...")</option>
+                <option value="male">Clear Voice B ("Testing EchoShift voice changer...")</option>
+              </select>
+            </div>
+            <label class="spoken-loop-label">
+              <input type="checkbox" id="demoLoopToggle" checked>
+              <span>Loop Continuous</span>
+            </label>
+          </div>
+
+          <div class="spoken-action-row">
+            <button id="btnPlayDemo" class="btn btn-primary spoken-play-btn" onclick="toggleSpokenDemo()">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              <span id="btnPlayDemoLabel">Play Spoken Demo</span>
+            </button>
+            <span class="spoken-hint-text">
+              Real human speech sample. Click any filter preset to hear instant transformations!
+            </span>
+          </div>
+        </div>
+
+        <!-- Panel 2: Live Microphone -->
+        <div class="source-panel" id="panelMic">
+          <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <button id="btnMic" class="btn btn-primary" onclick="toggleMicrophone()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+              </svg>
+              <span id="btnMicLabel">Enable Microphone</span>
+            </button>
+
+            <button id="btnToggleMonitor" class="btn btn-secondary" onclick="toggleLiveMonitoring()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 18v-6a9 9 0 0 1 18 0v6"/>
+                <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z"/>
+              </svg>
+              <span id="btnToggleMonitorLabel">Hear Myself: OFF</span>
+            </button>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-dim);">
+            Tip: Wear headphones before clicking "Hear Myself" to prevent acoustic feedback screeches.
+          </span>
+        </div>
+
+        <!-- Panel 3: Quick 3-Second Test Loop -->
+        <div class="source-panel" id="panelQuickLoop">
+          <div style="font-size: 0.76rem; color: var(--text-muted);">
+            Record a quick 3-second sample of your voice ("One, two, three!"). It will automatically loop continuously so you can test all filter presets without needing headphones!
+          </div>
+          <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+            <button id="btnQuickRecord" class="btn btn-danger" onclick="startQuickVoiceRecord()">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="8"/>
+              </svg>
+              <span id="btnQuickRecordLabel">Record 3s Test Phrase</span>
+            </button>
+
+            <button id="btnQuickStop" class="btn btn-secondary" onclick="stopQuickVoiceLoop()" style="display: none;">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+              <span>Stop Loop</span>
+            </button>
+          </div>
+          <div class="progress-bar-container" id="quickLoopProgress">
+            <div class="progress-bar-fill" id="quickLoopProgressFill"></div>
+          </div>
+        </div>
+
+        <!-- Panel 4: Upload Audio File -->
+        <div class="source-panel" id="panelUpload">
+          <input type="file" id="audioFileInput" accept="audio/*" style="display: none;" onchange="handleAudioFileUpload(event)">
+          <div class="file-drop-zone" onclick="document.getElementById('audioFileInput').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleFileDrop(event)">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-cyan);">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-main);">Click or Drag & Drop Any Audio File</div>
+            <div style="font-size: 0.7rem; color: var(--text-dim);">Supports MP3, WAV, M4A, OGG, WebM &bull; Processed 100% locally</div>
+          </div>
+          <div id="uploadedFileInfo" style="display: none; align-items: center; justify-content: space-between; font-size: 0.75rem; color: var(--accent-cyan); background: var(--bg-card); padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+            <span id="uploadedFileName">audio.mp3</span>
+            <button class="btn btn-secondary" style="padding: 4px 10px; font-size: 0.7rem;" onclick="toggleUploadedAudioPlay()" id="btnUploadedPlay">Play</button>
+          </div>
+        </div>
+
+        <!-- Live Waveform Oscilloscope -->
+        <div class="canvas-container">
+          <canvas id="oscilloscope"></canvas>
+          <div class="canvas-overlay-stats">
+            <span id="statFps">60 FPS</span>
+            <span>&bull;</span>
+            <span id="statLevel">RMS: -inf dB</span>
+          </div>
+          <div class="canvas-mode-toggle">
+            <button id="btnModeWaveform" class="active" onclick="setVisualizerMode('waveform')">Waveform</button>
+            <button id="btnModeFrequency" onclick="setVisualizerMode('frequency')">Spectrum</button>
+          </div>
+        </div>
+
+        <!-- Speaker Monitoring & Output Volume (Fixes "I can't hear") -->
+        <div class="monitor-box">
+          <div class="monitor-header">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 0.82rem; font-weight: 700;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-cyan);">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
+              </svg>
+              <span>Speaker / Headphone Volume</span>
+            </div>
+            <div class="quick-vol-btns">
+              <button class="quick-vol-btn" onclick="setVolumeQuick(0)">Mute</button>
+              <button class="quick-vol-btn" onclick="setVolumeQuick(50)">50%</button>
+              <button class="quick-vol-btn" onclick="setVolumeQuick(75)">75%</button>
+              <button class="quick-vol-btn" onclick="setVolumeQuick(100)">100%</button>
+            </div>
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-header">
+              <span>Master Output Level</span>
+              <span id="sliderVolVal" class="slider-value">75%</span>
+            </div>
+            <input type="range" id="sliderMonitoring" min="0" max="100" value="75" oninput="updateMonitorVolume(this.value)">
+          </div>
+
+          <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; color: var(--text-dim);">
+            <span>Input Gain Boost:</span>
+            <div style="display: flex; align-items: center; gap: 8px; width: 60%;">
+              <input type="range" id="sliderInputGain" min="50" max="250" value="100" oninput="updateInputGain(this.value)" style="height: 4px;">
+              <span id="sliderGainVal" class="slider-value" style="font-size: 0.72rem;">1.0x</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: 8 Distinct Voice Filters & Recording -->
+      <section class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>
+            </svg>
+            2. Voice Presets (16 Distinct Effects)
+          </div>
+          <span style="font-size: 0.72rem; color: var(--accent-cyan); font-weight: 600;" id="activeFilterBadge">Preset: Normal</span>
+        </div>
+
+        <!-- 16 Diverse DSP Presets Grid -->
+        <div class="presets-grid" id="presetsContainer">
+          <!-- 1. Normal -->
+          <div class="preset-card active" id="preset-normal" onclick="selectFilterPreset('normal')">
+            <span class="preset-tag">Bypass</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20M17 5v14M22 9v6M7 5v14M2 9v6"/>
+              </svg>
+            </div>
+            <span class="preset-title">Normal</span>
+            <span class="preset-desc">Direct clean pass-through bypass</span>
+          </div>
+
+          <!-- 2. Ghost / Wraith -->
+          <div class="preset-card" id="preset-ghost" onclick="selectFilterPreset('ghost')">
+            <span class="preset-tag">Spooky</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 10h.01M15 10h.01M12 2a8 8 0 0 0-8 8v12l3-3 2.5 2.5L12 19l2.5 2.5L17 19l3 3V10a8 8 0 0 0-8-8z"/>
+              </svg>
+            </div>
+            <span class="preset-title">Ghost / Wraith</span>
+            <span class="preset-desc">350ms echo &amp; 0.5Hz sweeping filter</span>
+          </div>
+
+          <!-- 3. Deep Monster -->
+          <div class="preset-card" id="preset-deep" onclick="selectFilterPreset('deep')">
+            <span class="preset-tag">Pitch Down</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a8 8 0 0 0-8 8c0 5 8 12 8 12s8-7 8-12a8 8 0 0 0-8-8z"/>
+                <circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/>
+                <path d="M9 14s1.5 2 3 2 3-2 3-2"/>
+              </svg>
+            </div>
+            <span class="preset-title">Deep Monster</span>
+            <span class="preset-desc">400Hz lowpass + asymmetric saturation</span>
+          </div>
+
+          <!-- 4. Chipmunk -->
+          <div class="preset-card" id="preset-chipmunk" onclick="selectFilterPreset('chipmunk')">
+            <span class="preset-tag">Pitch Up</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+                <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+              </svg>
+            </div>
+            <span class="preset-title">Chipmunk</span>
+            <span class="preset-desc">Dual-delay ~1.7x pitch shift + formant EQ</span>
+          </div>
+
+          <!-- 5. Robot Vocoder -->
+          <div class="preset-card" id="preset-robot" onclick="selectFilterPreset('robot')">
+            <span class="preset-tag">Robotic</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="10" rx="2"/>
+                <circle cx="12" cy="5" r="2"/>
+                <path d="M12 7v4M8 16h.01M16 16h.01"/>
+              </svg>
+            </div>
+            <span class="preset-title">Robot Vocoder</span>
+            <span class="preset-desc">50Hz sine ring modulation vocoder</span>
+          </div>
+
+          <!-- 6. Walkie-Talkie -->
+          <div class="preset-card" id="preset-walkie" onclick="selectFilterPreset('walkie')">
+            <span class="preset-tag">Comms</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="2" width="14" height="20" rx="2"/>
+                <line x1="12" y1="18" x2="12.01" y2="18"/>
+                <path d="M8 6h8M8 10h8"/>
+              </svg>
+            </div>
+            <span class="preset-title">Walkie-Talkie</span>
+            <span class="preset-desc">Narrow 1.8kHz bandpass &amp; radio clip</span>
+          </div>
+
+          <!-- 7. Megaphone -->
+          <div class="preset-card" id="preset-megaphone" onclick="selectFilterPreset('megaphone')">
+            <span class="preset-tag">Loudspeaker</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <line x1="16" y1="5" x2="21" y2="2"/>
+              </svg>
+            </div>
+            <span class="preset-title">Megaphone</span>
+            <span class="preset-desc">1200Hz +14dB peak &amp; hard-clip bullhorn</span>
+          </div>
+
+          <!-- 8. Cave Echo -->
+          <div class="preset-card" id="preset-echo" onclick="selectFilterPreset('echo')">
+            <span class="preset-tag">Reverb</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+            <span class="preset-title">Cave Echo</span>
+            <span class="preset-desc">420ms delay damped by 1.2kHz lowpass</span>
+          </div>
+
+          <!-- 9. Cathedral Reverb -->
+          <div class="preset-card" id="preset-cathedral" onclick="selectFilterPreset('cathedral')">
+            <span class="preset-tag">Ambience</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18M5 21V9l7-6 7 6v12M9 21v-4a3 3 0 0 1 6 0v4"/>
+              </svg>
+            </div>
+            <span class="preset-title">Cathedral Reverb</span>
+            <span class="preset-desc">Dual parallel delays &amp; 75% cross-feedback</span>
+          </div>
+
+          <!-- 10. Underwater -->
+          <div class="preset-card" id="preset-underwater" onclick="selectFilterPreset('underwater')">
+            <span class="preset-tag">Muffled</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12c2.5-3 5-3 7.5 0s5 3 7.5 0 5-3 5 0M2 17c2.5-3 5-3 7.5 0s5 3 7.5 0 5-3 5 0"/>
+                <circle cx="12" cy="6" r="3"/>
+              </svg>
+            </div>
+            <span class="preset-title">Underwater</span>
+            <span class="preset-desc">Muffled 320Hz lowpass + 1.2Hz LFO sweep</span>
+          </div>
+
+          <!-- 11. Cosmic Alien -->
+          <div class="preset-card" id="preset-alien" onclick="selectFilterPreset('alien')">
+            <span class="preset-tag">Sci-Fi</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M2 12h20"/>
+                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+              </svg>
+            </div>
+            <span class="preset-title">Cosmic Alien</span>
+            <span class="preset-desc">18Hz square ring mod &amp; 2.8kHz resonance</span>
+          </div>
+
+          <!-- 12. Vintage 1920s Phone -->
+          <div class="preset-card" id="preset-phone" onclick="selectFilterPreset('phone')">
+            <span class="preset-tag">Vintage</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+              </svg>
+            </div>
+            <span class="preset-title">1920s Phone</span>
+            <span class="preset-desc">600Hz-2.4kHz band + dynamic compression</span>
+          </div>
+
+          <!-- 13. Shivering Vibrato -->
+          <div class="preset-card" id="preset-vibrato" onclick="selectFilterPreset('vibrato')">
+            <span class="preset-tag">Wobble</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 12c1.5-4 3-4 4.5 0s3 4 4.5 0 3-4 4.5 0 3 4 4.5 0 3-4 4-2"/>
+              </svg>
+            </div>
+            <span class="preset-title">Shivering Vibrato</span>
+            <span class="preset-desc">20ms modulated delay line via 6Hz LFO</span>
+          </div>
+
+          <!-- 14. Cyberpunk Overdrive -->
+          <div class="preset-card" id="preset-cyberpunk" onclick="selectFilterPreset('cyberpunk')">
+            <span class="preset-tag">Industrial</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+            </div>
+            <span class="preset-title">Cyberpunk</span>
+            <span class="preset-desc">+15dB boost &amp; extreme overdrive mid-scoop</span>
+          </div>
+
+          <!-- 15. Astronaut Apollo -->
+          <div class="preset-card" id="preset-astronaut" onclick="selectFilterPreset('astronaut')">
+            <span class="preset-tag">Space</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M7 12a5 5 0 0 1 10 0"/>
+                <line x1="12" y1="12" x2="12" y2="16"/>
+              </svg>
+            </div>
+            <span class="preset-title">Astronaut Apollo</span>
+            <span class="preset-desc">18ms comb filter &amp; 800-2200Hz helmet comms</span>
+          </div>
+
+          <!-- 16. Demon Pitch -->
+          <div class="preset-card" id="preset-demon" onclick="selectFilterPreset('demon')">
+            <span class="preset-tag">Dark Evil</span>
+            <div class="preset-icon">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4c2 4 4 6 8 6s6-2 8-6c-1 8-4 14-8 16C8 18 5 12 4 4z"/>
+                <circle cx="9" cy="11" r="1"/><circle cx="15" cy="11" r="1"/>
+              </svg>
+            </div>
+            <span class="preset-title">Demon Pitch</span>
+            <span class="preset-desc">280Hz lowpass + 35Hz sub-ring &amp; distortion</span>
+          </div>
+        </div>
+
+        <!-- Recording & Export Station -->
+        <div class="recording-box">
+          <div class="card-header">
+            <div class="card-title" style="font-size: 0.85rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" style="color: var(--color-danger);">
+                <circle cx="12" cy="12" r="8"/>
+              </svg>
+              3. Record &amp; Export Transformed Audio
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button id="btnRecord" class="btn btn-danger" onclick="startRecording()">
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <circle cx="12" cy="12" r="8"/>
+              </svg>
+              <span id="btnRecordLabel">Record Processed Audio</span>
+            </button>
+
+            <button id="btnStopRecord" class="btn btn-secondary" onclick="stopRecording()" disabled>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <rect x="6" y="6" width="12" height="12" rx="2"/>
+              </svg>
+              <span>Stop &amp; Export</span>
+            </button>
+          </div>
+
+          <div class="recording-timer">
+            <div class="rec-indicator" id="recIndicator" style="display: none;">
+              <span class="status-dot recording"></span>
+              <span>RECORDING</span>
+            </div>
+            <div id="recIdleNotice" style="font-size: 0.74rem; color: var(--text-dim);">Ready to record any active voice</div>
+            <span id="recTimerDisplay">00:00.0</span>
+          </div>
+
+          <!-- Audio Playback & Download -->
+          <audio id="audioPlayer" controls style="display: none;"></audio>
+
+          <a id="btnDownload" class="btn btn-primary" style="display: none;" download="echoshift-recording.webm">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span>Download Transformed Voice Clip</span>
+          </a>
+
+          <div style="font-size: 0.7rem; color: var(--text-dim); text-align: center;" id="recCodecInfo">
+            All audio processed 100% locally in browser &bull; Zero server uploads
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      <span>EchoShift &bull; Real-Time Web Audio DSP Studio</span>
+      <span>True Granular Pitch Shifting &bull; Zero External Dependencies</span>
+      <a href="https://freeappstore.online" target="_blank" rel="noopener noreferrer" style="color: var(--accent-cyan); text-decoration: none; font-weight: 500;">Built for freeappstore.online</a>
+    </footer>
+  </div>
+
+  <!-- Inline Audio DSP Script -->
+  <script>
+    /* ==========================================================================
+       EchoShift Web Audio Core Engine & State Management
+       ========================================================================== */
+
+    // Application State
+    const state = {
+      audioCtx: null,
+      activeSourceTab: 'spoken',
+      micStream: null,
+      micSourceNode: null,
+      liveMonitorEnabled: false,
+
+      // Spoken Demo Audio State
+      demoSourceNode: null,
+      demoAudioBuffer: null,
+      demoPlaying: false,
+      demoLoadedVoice: '',
+
+      // Quick 3s Voice Loop State
+      quickLoopRecorder: null,
+      quickLoopChunks: [],
+      quickLoopBuffer: null,
+      quickLoopSourceNode: null,
+      quickLoopPlaying: false,
+      quickLoopInterval: null,
+
+      // Uploaded Audio State
+      uploadedBuffer: null,
+      uploadedSourceNode: null,
+      uploadedPlaying: false,
+
+      // Audio Graph Nodes
+      inputGainNode: null,
+      effectsInputNode: null,
+      effectsOutputNode: null,
+      monitorGainNode: null,
+      recordDestNode: null,
+      analyserNode: null,
+
+      // Active Preset & Effect Nodes
+      activePreset: 'normal',
+      pitchShifterNode: null,
+      effectSubNodes: [],
+
+      // Recording State
+      mediaRecorder: null,
+      recordedChunks: [],
+      recordingStartTime: 0,
+      recordingTimerId: null,
+      previousObjectUrl: null,
+
+      // Visualizer
+      visualizerMode: 'waveform'
+    };
+
+    // DOM Elements Cache
+    const UI = {
+      statusBadge: document.getElementById('engineStatusBadge'),
+      statusDot: document.getElementById('statusDot'),
+      statusText: document.getElementById('statusText'),
+      noticeBanner: document.getElementById('noticeBanner'),
+      noticeText: document.getElementById('noticeText'),
+      sampleRateLabel: document.getElementById('sampleRateLabel'),
+
+      // Source Tabs & Panels
+      panelSpoken: document.getElementById('panelSpoken'),
+      panelMic: document.getElementById('panelMic'),
+      panelQuickLoop: document.getElementById('panelQuickLoop'),
+      panelUpload: document.getElementById('panelUpload'),
+      demoVoiceSelect: document.getElementById('demoVoiceSelect'),
+      demoLoopToggle: document.getElementById('demoLoopToggle'),
+      btnPlayDemo: document.getElementById('btnPlayDemo'),
+      btnPlayDemoLabel: document.getElementById('btnPlayDemoLabel'),
+      btnMic: document.getElementById('btnMic'),
+      btnMicLabel: document.getElementById('btnMicLabel'),
+      btnToggleMonitor: document.getElementById('btnToggleMonitor'),
+      btnToggleMonitorLabel: document.getElementById('btnToggleMonitorLabel'),
+      btnQuickRecord: document.getElementById('btnQuickRecord'),
+      btnQuickRecordLabel: document.getElementById('btnQuickRecordLabel'),
+      btnQuickStop: document.getElementById('btnQuickStop'),
+      quickLoopProgress: document.getElementById('quickLoopProgress'),
+      quickLoopProgressFill: document.getElementById('quickLoopProgressFill'),
+      uploadedFileInfo: document.getElementById('uploadedFileInfo'),
+      uploadedFileName: document.getElementById('uploadedFileName'),
+      btnUploadedPlay: document.getElementById('btnUploadedPlay'),
+
+      // Monitoring & Output
+      sliderMonitoring: document.getElementById('sliderMonitoring'),
+      sliderVolVal: document.getElementById('sliderVolVal'),
+      sliderInputGain: document.getElementById('sliderInputGain'),
+      sliderGainVal: document.getElementById('sliderGainVal'),
+
+      // Presets & Recording
+      activeFilterBadge: document.getElementById('activeFilterBadge'),
+      btnRecord: document.getElementById('btnRecord'),
+      btnStopRecord: document.getElementById('btnStopRecord'),
+      recIndicator: document.getElementById('recIndicator'),
+      recIdleNotice: document.getElementById('recIdleNotice'),
+      recTimerDisplay: document.getElementById('recTimerDisplay'),
+      audioPlayer: document.getElementById('audioPlayer'),
+      btnDownload: document.getElementById('btnDownload'),
+      recCodecInfo: document.getElementById('recCodecInfo'),
+
+      // Visualizer Canvas
+      canvas: document.getElementById('oscilloscope'),
+      statFps: document.getElementById('statFps'),
+      statLevel: document.getElementById('statLevel')
+    };
+
+    /* --------------------------------------------------------------------------
+       Safe AudioContext Initializer (Strict User Interaction)
+       -------------------------------------------------------------------------- */
+    function ensureAudioContext() {
+      if (!state.audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) {
+          showNotice('Web Audio API is not supported in this browser.', 'warning');
+          return null;
+        }
+        state.audioCtx = new AudioContextClass();
+        UI.sampleRateLabel.textContent = (state.audioCtx.sampleRate / 1000).toFixed(1) + ' kHz';
+        buildAudioRoutingGraph();
+        startVisualizerLoop();
+      }
+
+      if (state.audioCtx.state === 'suspended') {
+        state.audioCtx.resume();
+      }
+
+      return state.audioCtx;
+    }
+
+    /* --------------------------------------------------------------------------
+       Audio DSP Graph Assembly
+       -------------------------------------------------------------------------- */
+    function buildAudioRoutingGraph() {
+      const ctx = state.audioCtx;
+
+      // 1. Input Gain Stage
+      state.inputGainNode = ctx.createGain();
+      state.inputGainNode.gain.value = 1.0;
+
+      // 2. Effects Entry & Exit Points
+      state.effectsInputNode = ctx.createGain();
+      state.effectsOutputNode = ctx.createGain();
+      state.inputGainNode.connect(state.effectsInputNode);
+
+      // 3. Monitoring Stage (Default 75% for spoken demo/audio, with clear feedback safeguard for live mic)
+      state.monitorGainNode = ctx.createGain();
+      state.monitorGainNode.gain.value = 0.75;
+      state.effectsOutputNode.connect(state.monitorGainNode);
+      state.monitorGainNode.connect(ctx.destination);
+
+      // 4. Visualizer Stage (Analyser taps post-effects stream)
+      state.analyserNode = ctx.createAnalyser();
+      state.analyserNode.fftSize = 2048;
+      state.analyserNode.smoothingTimeConstant = 0.82;
+      state.effectsOutputNode.connect(state.analyserNode);
+
+      // 5. Recording Destination Stage
+      if (ctx.createMediaStreamDestination) {
+        state.recordDestNode = ctx.createMediaStreamDestination();
+        state.effectsOutputNode.connect(state.recordDestNode);
+      }
+
+      // Initialize default filter connection
+      applyFilterPreset('normal');
+    }
+
+    /* --------------------------------------------------------------------------
+       Overlapping Dual-Delay Line Pitch Shifter (~1.68x Pitch Shift Factor)
+       Uses two modulated DelayNodes with a periodic sawtooth LFO running at ~75Hz
+       Crossfaded with symmetric triangular gain windows + 400Hz HP & 2.5kHz peaking
+       -------------------------------------------------------------------------- */
+    function createDualDelayPitchShifter(ctx, pitchRatio = 1.68, lfoFreq = 75) {
+      const now = ctx.currentTime;
+      const sr = ctx.sampleRate;
+
+      // 1. Formant-shaping filters: 400Hz Highpass + 2.5kHz Peaking to brighten vocal formant
+      const hp = ctx.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.setValueAtTime(400, now);
+      hp.Q.setValueAtTime(0.7, now);
+
+      const peak = ctx.createBiquadFilter();
+      peak.type = 'peaking';
+      peak.frequency.setValueAtTime(2500, now);
+      peak.gain.setValueAtTime(7.5, now);
+      peak.Q.setValueAtTime(2.2, now);
+
+      // 2. Dual delay lines (native Web Audio DelayNodes)
+      const maxDelay = 0.1;
+      const delay1 = ctx.createDelay(maxDelay);
+      const delay2 = ctx.createDelay(maxDelay);
+
+      // 3. Crossfade gain nodes (triangular gain windows)
+      const gain1 = ctx.createGain();
+      const gain2 = ctx.createGain();
+      gain1.gain.setValueAtTime(0, now);
+      gain2.gain.setValueAtTime(0, now);
+
+      // Summing output node with slight makeup boost
+      const outGain = ctx.createGain();
+      outGain.gain.setValueAtTime(1.15, now);
+
+      // Clean DSP routing: hp -> peak -> (delay1 & delay2) -> (gain1 & gain2) -> outGain
+      hp.connect(peak);
+      peak.connect(delay1);
+      peak.connect(delay2);
+      delay1.connect(gain1);
+      delay2.connect(gain2);
+      gain1.connect(outGain);
+      gain2.connect(outGain);
+
+      // 4. Modulation buffers for delay times (periodic sawtooth) & crossfade gains (triangular windows)
+      const cycleSamples = Math.max(8, Math.round(sr / lfoFreq));
+      const numCycles = 16;
+      const totalSamples = cycleSamples * numCycles;
+
+      const delayChange = (pitchRatio - 1.0) * (cycleSamples / sr);
+      const baseDelay = 0.003; // 3ms base delay floor
+
+      const bufD1 = ctx.createBuffer(1, totalSamples, sr);
+      const bufD2 = ctx.createBuffer(1, totalSamples, sr);
+      const bufG1 = ctx.createBuffer(1, totalSamples, sr);
+      const bufG2 = ctx.createBuffer(1, totalSamples, sr);
+
+      const d1 = bufD1.getChannelData(0);
+      const d2 = bufD2.getChannelData(0);
+      const g1 = bufG1.getChannelData(0);
+      const g2 = bufG2.getChannelData(0);
+
+      for (let i = 0; i < totalSamples; i++) {
+        const phi1 = (i % cycleSamples) / cycleSamples;
+        const phi2 = ((i % cycleSamples) / cycleSamples + 0.5) % 1.0;
+
+        // Periodic downward sawtooth ramp creates true upward pitch shifting
+        d1[i] = baseDelay + delayChange * (1.0 - phi1);
+        d2[i] = baseDelay + delayChange * (1.0 - phi2);
+
+        // Symmetric triangular crossfade: gain = 0 at wrap-around point (phi = 0/1), peaks at phi = 0.5
+        g1[i] = 1.0 - Math.abs(2.0 * phi1 - 1.0);
+        g2[i] = 1.0 - Math.abs(2.0 * phi2 - 1.0);
+      }
+
+      // Base AudioParam values set to 0 so buffer source modulates absolute values
+      delay1.delayTime.setValueAtTime(0, now);
+      delay2.delayTime.setValueAtTime(0, now);
+
+      const modD1 = ctx.createBufferSource();
+      modD1.buffer = bufD1;
+      modD1.loop = true;
+      modD1.connect(delay1.delayTime);
+
+      const modD2 = ctx.createBufferSource();
+      modD2.buffer = bufD2;
+      modD2.loop = true;
+      modD2.connect(delay2.delayTime);
+
+      const modG1 = ctx.createBufferSource();
+      modG1.buffer = bufG1;
+      modG1.loop = true;
+      modG1.connect(gain1.gain);
+
+      const modG2 = ctx.createBufferSource();
+      modG2.buffer = bufG2;
+      modG2.loop = true;
+      modG2.connect(gain2.gain);
+
+      modD1.start(now);
+      modD2.start(now);
+      modG1.start(now);
+      modG2.start(now);
+
+      return {
+        input: hp,
+        output: outGain,
+        nodes: [hp, peak, delay1, delay2, gain1, gain2, outGain, modD1, modD2, modG1, modG2]
+      };
+    }
+
+    /* --------------------------------------------------------------------------
+       Distortion Waveshaper Helpers & DSP Curves
+       -------------------------------------------------------------------------- */
+    function makeSoftDistortionCurve(amount = 20) {
+      const k = amount;
+      const n_samples = 44100;
+      const curve = new Float32Array(n_samples);
+      const deg = Math.PI / 180;
+      for (let i = 0; i < n_samples; ++i) {
+        const x = (i * 2) / n_samples - 1;
+        curve[i] = ((3 + k) * x * 20 * deg) / (Math.PI + k * Math.abs(x));
+      }
+      return curve;
+    }
+
+    function makeAsymmetricCurve(samples = 44100) {
+      const curve = new Float32Array(samples);
+      for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / samples - 1;
+        if (x < 0) {
+          curve[i] = -Math.tanh(Math.abs(x) * 2.8);
+        } else {
+          curve[i] = Math.tanh(x * 1.3) * 0.88;
+        }
+      }
+      return curve;
+    }
+
+    function makeHardClipCurve(samples = 44100, threshold = 0.35) {
+      const curve = new Float32Array(samples);
+      for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / samples - 1;
+        const scaled = x * 2.4;
+        curve[i] = Math.max(-threshold, Math.min(threshold, scaled)) / threshold;
+      }
+      return curve;
+    }
+
+    function makeCyberpunkCurve(samples = 44100) {
+      const curve = new Float32Array(samples);
+      for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / samples - 1;
+        curve[i] = Math.tanh(x * 3.5);
+      }
+      return curve;
+    }
+
+    function makeDemonCurve(samples = 44100) {
+      const curve = new Float32Array(samples);
+      for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / samples - 1;
+        curve[i] = Math.sin(x * Math.PI * 1.5) * 0.95;
+      }
+      return curve;
+    }
+
+    function makePhoneCurve(samples = 44100) {
+      const curve = new Float32Array(samples);
+      for (let i = 0; i < samples; i++) {
+        const x = (i * 2) / samples - 1;
+        curve[i] = Math.atan(x * 4) / Math.atan(4);
+      }
+      return curve;
+    }
+
+    /* --------------------------------------------------------------------------
+       Filter DSP Configurations (16 Distinct Audio Presets)
+       -------------------------------------------------------------------------- */
+    function clearCurrentFilters() {
+      if (!state.audioCtx) return;
+
+      try {
+        state.effectsInputNode.disconnect();
+      } catch (e) {}
+
+      // Disconnect all tracked sub-nodes
+      state.effectSubNodes.forEach(node => {
+        try {
+          if (node.stop) node.stop();
+          node.disconnect();
+        } catch (e) {}
+      });
+      state.effectSubNodes = [];
+      state.pitchShifterNode = null;
+    }
+
+    function applyFilterPreset(presetKey) {
+      if (!state.audioCtx) return;
+      clearCurrentFilters();
+
+      const ctx = state.audioCtx;
+      const inNode = state.effectsInputNode;
+      const outNode = state.effectsOutputNode;
+      const now = ctx.currentTime;
+
+      switch (presetKey) {
+        case 'normal': {
+          // 1. Normal: Direct clean pass-through bypass
+          inNode.connect(outNode);
+          break;
+        }
+
+        case 'ghost': {
+          // 2. Ghost / Wraith: 350ms delay with 60% feedback + 0.5Hz LFO modulating a bandpass filter
+          const dry = ctx.createGain();
+          dry.gain.setValueAtTime(0.7, now);
+
+          const delay = ctx.createDelay(1.0);
+          delay.delayTime.setValueAtTime(0.35, now);
+
+          const bp = ctx.createBiquadFilter();
+          bp.type = 'bandpass';
+          bp.frequency.setValueAtTime(1100, now);
+          bp.Q.setValueAtTime(2.2, now);
+
+          const lfo = ctx.createOscillator();
+          lfo.type = 'sine';
+          lfo.frequency.setValueAtTime(0.5, now);
+
+          const lfoGain = ctx.createGain();
+          lfoGain.gain.setValueAtTime(550, now);
+
+          lfo.connect(lfoGain);
+          lfoGain.connect(bp.frequency);
+          lfo.start(now);
+
+          const fb = ctx.createGain();
+          fb.gain.setValueAtTime(0.60, now);
+
+          const wet = ctx.createGain();
+          wet.gain.setValueAtTime(0.85, now);
+
+          inNode.connect(dry);
+          dry.connect(outNode);
+
+          inNode.connect(delay);
+          delay.connect(bp);
+          bp.connect(fb);
+          fb.connect(delay);
+          bp.connect(wet);
+          wet.connect(outNode);
+
+          state.effectSubNodes.push(dry, delay, bp, lfo, lfoGain, fb, wet);
+          break;
+        }
+
+        case 'deep': {
+          // 3. Deep Monster: Steep lowpass filter (cutoff 400Hz) + asymmetric WaveShaper saturation curve
+          const lp1 = ctx.createBiquadFilter();
+          lp1.type = 'lowpass';
+          lp1.frequency.setValueAtTime(400, now);
+          lp1.Q.setValueAtTime(1.8, now);
+
+          const lp2 = ctx.createBiquadFilter();
+          lp2.type = 'lowpass';
+          lp2.frequency.setValueAtTime(400, now);
+          lp2.Q.setValueAtTime(1.2, now);
+
+          const shaper = ctx.createWaveShaper();
+          shaper.curve = makeAsymmetricCurve(44100);
+          shaper.oversample = '2x';
+
+          const makeup = ctx.createGain();
+          makeup.gain.setValueAtTime(1.5, now);
+
+          inNode.connect(lp1);
+          lp1.connect(lp2);
+          lp2.connect(shaper);
+          shaper.connect(makeup);
+          makeup.connect(outNode);
+
+          state.effectSubNodes.push(lp1, lp2, shaper, makeup);
+          break;
+        }
+
+        case 'chipmunk': {
+          // 4. Chipmunk: Genuine Overlapping Dual-Delay Line Pitch Shifter (~75Hz sawtooth LFO, 1.68x pitch shift, triangular crossfade, 400Hz HP & 2.5kHz peaking formant boost)
+          const shifter = createDualDelayPitchShifter(ctx, 1.68, 75);
+          inNode.connect(shifter.input);
+          shifter.output.connect(outNode);
+          state.effectSubNodes.push(...shifter.nodes);
+          break;
+        }
+
+        case 'robot': {
+          // 5. Robot Vocoder: Ring modulation using a 50Hz sine OscillatorNode into GainNode modulation
+          const osc = ctx.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(50, now);
+
+          const ringGain = ctx.createGain();
+          ringGain.gain.value = 0.0;
+          osc.connect(ringGain.gain);
+          osc.start(now);
+
+          const dry = ctx.createGain();
+          dry.gain.setValueAtTime(0.25, now);
+
+          const wet = ctx.createGain();
+          wet.gain.setValueAtTime(0.85, now);
+
+          inNode.connect(dry);
+          dry.connect(outNode);
+
+          inNode.connect(ringGain);
+          ringGain.connect(wet);
+          wet.connect(outNode);
+
+          state.effectSubNodes.push(osc, ringGain, dry, wet);
+          break;
+        }
+
+        case 'walkie': {
+          // 6. Walkie-Talkie: Narrow bandpass filter (1800Hz, Q: 4.5) + light clipping distortion + 3500Hz shelf
+          const bp = ctx.createBiquadFilter();
+          bp.type = 'bandpass';
+          bp.frequency.setValueAtTime(1800, now);
+          bp.Q.setValueAtTime(4.5, now);
+
+          const dist = ctx.createWaveShaper();
+          dist.curve = makeSoftDistortionCurve(16);
+          dist.oversample = '2x';
+
+          const shelf = ctx.createBiquadFilter();
+          shelf.type = 'highshelf';
+          shelf.frequency.setValueAtTime(3500, now);
+          shelf.gain.setValueAtTime(-12, now);
+
+          const makeup = ctx.createGain();
+          makeup.gain.setValueAtTime(2.2, now);
+
+          inNode.connect(bp);
+          bp.connect(dist);
+          dist.connect(shelf);
+          shelf.connect(makeup);
+          makeup.connect(outNode);
+
+          state.effectSubNodes.push(bp, dist, shelf, makeup);
+          break;
+        }
+
+        case 'megaphone': {
+          // 7. Megaphone: Peaking filter at 1200Hz (+14dB boost) + hard-clip distortion curve via WaveShaper
+          const hp = ctx.createBiquadFilter();
+          hp.type = 'highpass';
+          hp.frequency.setValueAtTime(500, now);
+
+          const peak = ctx.createBiquadFilter();
+          peak.type = 'peaking';
+          peak.frequency.setValueAtTime(1200, now);
+          peak.gain.setValueAtTime(14, now);
+          peak.Q.setValueAtTime(2.8, now);
+
+          const hardClip = ctx.createWaveShaper();
+          hardClip.curve = makeHardClipCurve(44100, 0.35);
+
+          const outGain = ctx.createGain();
+          outGain.gain.setValueAtTime(0.85, now);
+
+          inNode.connect(hp);
+          hp.connect(peak);
+          peak.connect(hardClip);
+          hardClip.connect(outGain);
+          outGain.connect(outNode);
+
+          state.effectSubNodes.push(hp, peak, hardClip, outGain);
+          break;
+        }
+
+        case 'echo': {
+          // 8. Cave Echo: 420ms DelayNode feedback loop damped by a 1200Hz lowpass filter
+          const dry = ctx.createGain();
+          dry.gain.setValueAtTime(0.75, now);
+
+          const delay = ctx.createDelay(1.0);
+          delay.delayTime.setValueAtTime(0.42, now);
+
+          const damp = ctx.createBiquadFilter();
+          damp.type = 'lowpass';
+          damp.frequency.setValueAtTime(1200, now);
+
+          const fb = ctx.createGain();
+          fb.gain.setValueAtTime(0.52, now);
+
+          const wet = ctx.createGain();
+          wet.gain.setValueAtTime(0.75, now);
+
+          inNode.connect(dry);
+          dry.connect(outNode);
+
+          inNode.connect(delay);
+          delay.connect(damp);
+          damp.connect(fb);
+          fb.connect(delay);
+          damp.connect(wet);
+          wet.connect(outNode);
+
+          state.effectSubNodes.push(dry, delay, damp, fb, wet);
+          break;
+        }
+
+        case 'cathedral': {
+          // 9. Cathedral Reverb: Dual parallel delay lines (180ms & 340ms) with 75% cross-feedback
+          const dry = ctx.createGain();
+          dry.gain.setValueAtTime(0.65, now);
+
+          const delay1 = ctx.createDelay(1.0);
+          delay1.delayTime.setValueAtTime(0.18, now);
+
+          const delay2 = ctx.createDelay(1.0);
+          delay2.delayTime.setValueAtTime(0.34, now);
+
+          const damp1 = ctx.createBiquadFilter();
+          damp1.type = 'lowpass';
+          damp1.frequency.setValueAtTime(2800, now);
+
+          const damp2 = ctx.createBiquadFilter();
+          damp2.type = 'lowpass';
+          damp2.frequency.setValueAtTime(2400, now);
+
+          const cross1 = ctx.createGain();
+          cross1.gain.setValueAtTime(0.55, now);
+
+          const cross2 = ctx.createGain();
+          cross2.gain.setValueAtTime(0.55, now);
+
+          const wet = ctx.createGain();
+          wet.gain.setValueAtTime(0.75, now);
+
+          inNode.connect(dry);
+          dry.connect(outNode);
+
+          inNode.connect(delay1);
+          inNode.connect(delay2);
+
+          delay1.connect(damp1);
+          damp1.connect(cross1);
+          cross1.connect(delay2);
+
+          delay2.connect(damp2);
+          damp2.connect(cross2);
+          cross2.connect(delay1);
+
+          damp1.connect(wet);
+          damp2.connect(wet);
+          wet.connect(outNode);
+
+          state.effectSubNodes.push(dry, delay1, delay2, damp1, damp2, cross1, cross2, wet);
+          break;
+        }
+
+        case 'underwater': {
+          // 10. Underwater: Muffled 320Hz lowpass filter + 1.2Hz LFO gentle frequency sweep
+          const lp = ctx.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.frequency.setValueAtTime(320, now);
+          lp.Q.setValueAtTime(2.5, now);
+
+          const lfo = ctx.createOscillator();
+          lfo.type = 'sine';
+          lfo.frequency.setValueAtTime(1.2, now);
+
+          const lfoGain = ctx.createGain();
+          lfoGain.gain.setValueAtTime(140, now);
+
+          lfo.connect(lfoGain);
+          lfoGain.connect(lp.frequency);
+          lfo.start(now);
+
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(1.6, now);
+
+          inNode.connect(lp);
+          lp.connect(gain);
+          gain.connect(outNode);
+
+          state.effectSubNodes.push(lp, lfo, lfoGain, gain);
+          break;
+        }
+
+        case 'alien': {
+          // 11. Cosmic Alien: 18Hz square-wave ring modulation + peaking resonant band at 2800Hz
+          const osc = ctx.createOscillator();
+          osc.type = 'square';
+          osc.frequency.setValueAtTime(18, now);
+
+          const ringGain = ctx.createGain();
+          ringGain.gain.value = 0.0;
+          osc.connect(ringGain.gain);
+          osc.start(now);
+
+          const peak = ctx.createBiquadFilter();
+          peak.type = 'peaking';
+          peak.frequency.setValueAtTime(2800, now);
+          peak.Q.setValueAtTime(4.0, now);
+          peak.gain.setValueAtTime(9.0, now);
+
+          const dry = ctx.createGain();
+          dry.gain.setValueAtTime(0.35, now);
+
+          const wet = ctx.createGain();
+          wet.gain.setValueAtTime(0.85, now);
+
+          inNode.connect(dry);
+          dry.connect(outNode);
+
+          inNode.connect(ringGain);
+          ringGain.connect(peak);
+          peak.connect(wet);
+          wet.connect(outNode);
+
+          state.effectSubNodes.push(osc, ringGain, peak, dry, wet);
+          break;
+        }
+
+        case 'phone': {
+          // 12. Vintage 1920s Phone: Dual bandpass (600Hz highpass + 2400Hz lowpass) + aggressive dynamic compression curve
+          const hp = ctx.createBiquadFilter();
+          hp.type = 'highpass';
+          hp.frequency.setValueAtTime(600, now);
+
+          const lp = ctx.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.frequency.setValueAtTime(2400, now);
+
+          const compressor = ctx.createDynamicsCompressor();
+          compressor.threshold.setValueAtTime(-30, now);
+          compressor.knee.setValueAtTime(3, now);
+          compressor.ratio.setValueAtTime(16, now);
+          compressor.attack.setValueAtTime(0.003, now);
+          compressor.release.setValueAtTime(0.05, now);
+
+          const shaper = ctx.createWaveShaper();
+          shaper.curve = makePhoneCurve(44100);
+
+          const makeup = ctx.createGain();
+          makeup.gain.setValueAtTime(1.8, now);
+
+          inNode.connect(hp);
+          hp.connect(lp);
+          lp.connect(compressor);
+          compressor.connect(shaper);
+          shaper.connect(makeup);
+          makeup.connect(outNode);
+
+          state.effectSubNodes.push(hp, lp, compressor, shaper, makeup);
+          break;
+        }
+
+        case 'vibrato': {
+          // 13. Shivering Vibrato: 20ms modulated delay line driven by a 6Hz sine LFO
+          const delay = ctx.createDelay(0.1);
+          delay.delayTime.setValueAtTime(0.020, now);
+
+          const lfo = ctx.createOscillator();
+          lfo.type = 'sine';
+          lfo.frequency.setValueAtTime(6.0, now);
+
+          const lfoGain = ctx.createGain();
+          lfoGain.gain.setValueAtTime(0.0035, now);
+
+          lfo.connect(lfoGain);
+          lfoGain.connect(delay.delayTime);
+          lfo.start(now);
+
+          inNode.connect(delay);
+          delay.connect(outNode);
+
+          state.effectSubNodes.push(delay, lfo, lfoGain);
+          break;
+        }
+
+        case 'cyberpunk': {
+          // 14. Cyberpunk Overdrive: Pre-gain boost (+15dB) + extreme S-curve WaveShaper digital overdrive + 1000Hz mid-scoop
+          const preGain = ctx.createGain();
+          preGain.gain.setValueAtTime(4.5, now);
+
+          const shaper = ctx.createWaveShaper();
+          shaper.curve = makeCyberpunkCurve(44100);
+          shaper.oversample = '4x';
+
+          const midScoop = ctx.createBiquadFilter();
+          midScoop.type = 'peaking';
+          midScoop.frequency.setValueAtTime(1000, now);
+          midScoop.Q.setValueAtTime(1.8, now);
+          midScoop.gain.setValueAtTime(-12, now);
+
+          const postGain = ctx.createGain();
+          postGain.gain.setValueAtTime(0.45, now);
+
+          inNode.connect(preGain);
+          preGain.connect(shaper);
+          shaper.connect(midScoop);
+          midScoop.connect(postGain);
+          postGain.connect(outNode);
+
+          state.effectSubNodes.push(preGain, shaper, midScoop, postGain);
+          break;
+        }
+
+        case 'astronaut': {
+          // 15. Astronaut Apollo: 18ms comb filter delay + narrow helmet comms bandpass (800Hz - 2200Hz)
+          const hp = ctx.createBiquadFilter();
+          hp.type = 'highpass';
+          hp.frequency.setValueAtTime(800, now);
+
+          const lp = ctx.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.frequency.setValueAtTime(2200, now);
+
+          const combDelay = ctx.createDelay(0.1);
+          combDelay.delayTime.setValueAtTime(0.018, now);
+
+          const combFb = ctx.createGain();
+          combFb.gain.setValueAtTime(0.65, now);
+
+          const combDry = ctx.createGain();
+          combDry.gain.setValueAtTime(0.7, now);
+
+          const combWet = ctx.createGain();
+          combWet.gain.setValueAtTime(0.6, now);
+
+          const shaper = ctx.createWaveShaper();
+          shaper.curve = makeSoftDistortionCurve(10);
+
+          const outGain = ctx.createGain();
+          outGain.gain.setValueAtTime(1.35, now);
+
+          inNode.connect(hp);
+          hp.connect(lp);
+
+          lp.connect(combDry);
+          lp.connect(combDelay);
+
+          combDelay.connect(combFb);
+          combFb.connect(combDelay);
+          combDelay.connect(combWet);
+
+          combDry.connect(shaper);
+          combWet.connect(shaper);
+
+          shaper.connect(outGain);
+          outGain.connect(outNode);
+
+          state.effectSubNodes.push(hp, lp, combDelay, combFb, combDry, combWet, shaper, outGain);
+          break;
+        }
+
+        case 'demon': {
+          // 16. Demon Pitch: Ultra-low lowpass filter (280Hz) + sub-harmonic 35Hz ring modulation + heavy distortion
+          const lp = ctx.createBiquadFilter();
+          lp.type = 'lowpass';
+          lp.frequency.setValueAtTime(280, now);
+          lp.Q.setValueAtTime(2.0, now);
+
+          const subOsc = ctx.createOscillator();
+          subOsc.type = 'sine';
+          subOsc.frequency.setValueAtTime(35, now);
+
+          const ringGain = ctx.createGain();
+          ringGain.gain.value = 0.0;
+          subOsc.connect(ringGain.gain);
+          subOsc.start(now);
+
+          const heavyDist = ctx.createWaveShaper();
+          heavyDist.curve = makeDemonCurve(44100);
+
+          const bassBoost = ctx.createBiquadFilter();
+          bassBoost.type = 'lowshelf';
+          bassBoost.frequency.setValueAtTime(180, now);
+          bassBoost.gain.setValueAtTime(7.0, now);
+
+          const dry = ctx.createGain();
+          dry.gain.setValueAtTime(0.35, now);
+
+          const demonWet = ctx.createGain();
+          demonWet.gain.setValueAtTime(0.95, now);
+
+          inNode.connect(dry);
+          dry.connect(outNode);
+
+          inNode.connect(lp);
+          lp.connect(ringGain);
+          ringGain.connect(heavyDist);
+          heavyDist.connect(bassBoost);
+          bassBoost.connect(demonWet);
+          demonWet.connect(outNode);
+
+          state.effectSubNodes.push(lp, subOsc, ringGain, heavyDist, bassBoost, dry, demonWet);
+          break;
+        }
+      }
+    }
+
+    function selectFilterPreset(presetKey) {
+      state.activePreset = presetKey;
+      const allCards = document.querySelectorAll('.preset-card');
+      allCards.forEach(card => card.classList.remove('active'));
+
+      const target = document.getElementById('preset-' + presetKey);
+      if (target) target.classList.add('active');
+
+      const presetNames = {
+        normal: 'Normal',
+        ghost: 'Ghost / Wraith',
+        deep: 'Deep Monster',
+        chipmunk: 'Chipmunk',
+        robot: 'Robot Vocoder',
+        walkie: 'Walkie-Talkie',
+        megaphone: 'Megaphone',
+        echo: 'Cave Echo',
+        cathedral: 'Cathedral Reverb',
+        underwater: 'Underwater',
+        alien: 'Cosmic Alien',
+        phone: '1920s Phone',
+        vibrato: 'Shivering Vibrato',
+        cyberpunk: 'Cyberpunk Overdrive',
+        astronaut: 'Astronaut Apollo',
+        demon: 'Demon Pitch'
+      };
+      UI.activeFilterBadge.textContent = 'Preset: ' + (presetNames[presetKey] || presetKey);
+
+      // Dynamic Playback Speed Pitch Shifter for Active Spoken Demo & Audio Playback Sources
+      const rate = (presetKey === 'chipmunk') ? 1.6 : 1.0;
+      if (state.demoSourceNode && state.audioCtx) {
+        state.demoSourceNode.playbackRate.setTargetAtTime(rate, state.audioCtx.currentTime, 0.05);
+      }
+      if (state.quickLoopSourceNode && state.audioCtx) {
+        state.quickLoopSourceNode.playbackRate.setTargetAtTime(rate, state.audioCtx.currentTime, 0.05);
+      }
+      if (state.uploadedSourceNode && state.audioCtx) {
+        state.uploadedSourceNode.playbackRate.setTargetAtTime(rate, state.audioCtx.currentTime, 0.05);
+      }
+
+      if (state.audioCtx) {
+        applyFilterPreset(presetKey);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       Source Switching (Spoken Demo vs Mic vs Quick Loop vs Upload)
+       -------------------------------------------------------------------------- */
+    function switchSourceTab(tabKey) {
+      state.activeSourceTab = tabKey;
+      const tabs = ['spoken', 'mic', 'quickloop', 'upload'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tabBtn' + capitalize(t));
+        const panel = document.getElementById('panel' + capitalize(t));
+        if (btn) btn.classList.toggle('active', t === tabKey);
+        if (panel) panel.classList.toggle('active', t === tabKey);
+      });
+    }
+
+    function capitalize(str) {
+      if (str === 'quickloop') return 'QuickLoop';
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    /* --------------------------------------------------------------------------
+       Source 1: Spoken Voice Demo (Real Spoken Human Words)
+       -------------------------------------------------------------------------- */
+    async function loadSpokenBuffer(voiceKey) {
+      const ctx = ensureAudioContext();
+      if (!ctx) return null;
+
+      // Try window.SPEECH_SAMPLES data URI first, then static asset
+      let audioSrc = '';
+      if (window.SPEECH_SAMPLES && window.SPEECH_SAMPLES[voiceKey]) {
+        audioSrc = window.SPEECH_SAMPLES[voiceKey];
+      } else {
+        audioSrc = `/assets/sample_${voiceKey}.mp3`;
+      }
+
+      try {
+        const res = await fetch(audioSrc);
+        const arrayBuf = await res.arrayBuffer();
+        const audioBuf = await ctx.decodeAudioData(arrayBuf);
+        state.demoAudioBuffer = audioBuf;
+        state.demoLoadedVoice = voiceKey;
+        return audioBuf;
+      } catch (err) {
+        console.error('Failed to decode speech sample:', err);
+        showNotice('Failed to load spoken demo sample. Please check your browser audio support.', 'warning');
+        return null;
+      }
+    }
+
+    async function toggleSpokenDemo() {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+
+      if (state.demoPlaying) {
+        stopSpokenDemo();
+        return;
+      }
+
+      const voiceKey = UI.demoVoiceSelect.value;
+      if (!state.demoAudioBuffer || state.demoLoadedVoice !== voiceKey) {
+        showNotice('Loading crystal-clear spoken voice demo...', 'info');
+        await loadSpokenBuffer(voiceKey);
+      }
+
+      if (!state.demoAudioBuffer) return;
+
+      // Stop any other active sources
+      stopMicrophone();
+      stopQuickVoiceLoop();
+      stopUploadedAudio();
+
+      // Ensure monitor volume is audible
+      if (state.monitorGainNode.gain.value < 0.1) {
+        setVolumeQuick(75);
+      }
+
+      const source = ctx.createBufferSource();
+      source.buffer = state.demoAudioBuffer;
+      source.loop = UI.demoLoopToggle.checked;
+      source.playbackRate.value = (state.activePreset === 'chipmunk') ? 1.6 : 1.0;
+      source.connect(state.inputGainNode);
+
+      source.onended = () => {
+        if (!source.loop) {
+          stopSpokenDemo();
+        }
+      };
+
+      source.start(0);
+      state.demoSourceNode = source;
+      state.demoPlaying = true;
+
+      UI.btnPlayDemo.classList.add('btn-warning');
+      UI.btnPlayDemoLabel.textContent = 'Stop Spoken Demo';
+      UI.btnRecord.disabled = false;
+      setEngineStatus('demo', 'Playing Spoken Voice Demo');
+      showNotice('Playing real spoken demo! Switch between presets (Deep Monster, Chipmunk, Robot, etc.) to hear immediate voice changes.', 'success');
+    }
+
+    function stopSpokenDemo() {
+      if (state.demoSourceNode) {
+        try { state.demoSourceNode.stop(); state.demoSourceNode.disconnect(); } catch (e) {}
+        state.demoSourceNode = null;
+      }
+      state.demoPlaying = false;
+      UI.btnPlayDemo.classList.remove('btn-warning');
+      UI.btnPlayDemoLabel.textContent = 'Play Spoken Demo';
+
+      if (!state.micStream && !state.quickLoopPlaying && !state.uploadedPlaying) {
+        setEngineStatus('idle', 'Engine Ready (Idle)');
+      }
+    }
+
+    // Refresh sample when voice select changes
+    UI.demoVoiceSelect.addEventListener('change', () => {
+      if (state.demoPlaying) {
+        stopSpokenDemo();
+        toggleSpokenDemo();
+      }
+    });
+
+    UI.demoLoopToggle.addEventListener('change', () => {
+      if (state.demoSourceNode) {
+        state.demoSourceNode.loop = UI.demoLoopToggle.checked;
+      }
+    });
+
+    /* --------------------------------------------------------------------------
+       Source 2: Live Microphone
+       -------------------------------------------------------------------------- */
+    async function toggleMicrophone() {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+
+      if (state.micStream) {
+        stopMicrophone();
+        return;
+      }
+
+      stopSpokenDemo();
+      stopQuickVoiceLoop();
+      stopUploadedAudio();
+
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error('getUserMedia not supported in this browser context.');
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
+          video: false
+        });
+
+        state.micStream = stream;
+        state.micSourceNode = ctx.createMediaStreamSource(stream);
+        state.micSourceNode.connect(state.inputGainNode);
+
+        // Update UI
+        setEngineStatus('active', 'Microphone Live');
+        UI.btnMic.classList.remove('btn-primary');
+        UI.btnMic.classList.add('btn-warning');
+        UI.btnMicLabel.textContent = 'Mute Microphone';
+        UI.btnRecord.disabled = false;
+
+        showNotice('Microphone connected! Speak into your mic. Click "Hear Myself" to monitor your voice live.', 'success');
+      } catch (err) {
+        console.warn('Mic access error:', err);
+        showNotice('Microphone access blocked or unavailable in this iframe. Switched to Spoken Voice Demo mode so you can test all voice effects immediately!', 'warning');
+        switchSourceTab('spoken');
+        toggleSpokenDemo();
+      }
+    }
+
+    function stopMicrophone() {
+      if (state.micStream) {
+        state.micStream.getTracks().forEach(t => t.stop());
+        state.micStream = null;
+      }
+      if (state.micSourceNode) {
+        try { state.micSourceNode.disconnect(); } catch (e) {}
+        state.micSourceNode = null;
+      }
+
+      UI.btnMic.classList.add('btn-primary');
+      UI.btnMic.classList.remove('btn-warning');
+      UI.btnMicLabel.textContent = 'Enable Microphone';
+
+      if (!state.demoPlaying && !state.quickLoopPlaying && !state.uploadedPlaying) {
+        setEngineStatus('idle', 'Engine Ready (Idle)');
+      }
+    }
+
+    function toggleLiveMonitoring() {
+      state.liveMonitorEnabled = !state.liveMonitorEnabled;
+      if (state.liveMonitorEnabled) {
+        UI.btnToggleMonitor.classList.remove('btn-secondary');
+        UI.btnToggleMonitor.classList.add('btn-warning');
+        UI.btnToggleMonitorLabel.textContent = 'Hear Myself: ON';
+        setVolumeQuick(50);
+        showNotice('Live speaker monitor ON! Wear headphones to prevent acoustic microphone feedback.', 'warning');
+      } else {
+        UI.btnToggleMonitor.classList.add('btn-secondary');
+        UI.btnToggleMonitor.classList.remove('btn-warning');
+        UI.btnToggleMonitorLabel.textContent = 'Hear Myself: OFF';
+        setVolumeQuick(0);
+        showNotice('Live speaker monitor muted. Visualizer and recording remain 100% active.', 'info');
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       Source 3: Quick 3-Second Voice Test Loop
+       -------------------------------------------------------------------------- */
+    async function startQuickVoiceRecord() {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+
+      stopSpokenDemo();
+      stopQuickVoiceLoop();
+      stopUploadedAudio();
+
+      let stream = state.micStream;
+      if (!stream) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          state.micStream = stream;
+        } catch (e) {
+          showNotice('Microphone permission required for 3s quick test. Use the Spoken Voice Demo tab instead!', 'warning');
+          return;
+        }
+      }
+
+      state.quickLoopChunks = [];
+      const mr = new MediaRecorder(stream);
+      state.quickLoopRecorder = mr;
+
+      mr.ondataavailable = e => {
+        if (e.data.size > 0) state.quickLoopChunks.push(e.data);
+      };
+
+      mr.onstop = async () => {
+        const blob = new Blob(state.quickLoopChunks, { type: 'audio/webm' });
+        const arrayBuf = await blob.arrayBuffer();
+        try {
+          state.quickLoopBuffer = await ctx.decodeAudioData(arrayBuf);
+          playQuickVoiceLoop();
+        } catch (err) {
+          console.error('Failed to decode recorded quick loop:', err);
+        }
+      };
+
+      mr.start();
+      UI.btnQuickRecord.disabled = true;
+      UI.btnQuickRecordLabel.textContent = 'Recording (3s)... Speak now!';
+      UI.quickLoopProgress.style.display = 'block';
+      UI.quickLoopProgressFill.style.width = '0%';
+
+      let elapsed = 0;
+      const step = 50;
+      const interval = setInterval(() => {
+        elapsed += step;
+        const pct = Math.min(100, (elapsed / 3000) * 100);
+        UI.quickLoopProgressFill.style.width = pct + '%';
+
+        if (elapsed >= 3000) {
+          clearInterval(interval);
+          mr.stop();
+          UI.btnQuickRecord.disabled = false;
+          UI.btnQuickRecordLabel.textContent = 'Record 3s Test Phrase';
+          UI.quickLoopProgress.style.display = 'none';
+        }
+      }, step);
+    }
+
+    function playQuickVoiceLoop() {
+      const ctx = ensureAudioContext();
+      if (!ctx || !state.quickLoopBuffer) return;
+
+      stopQuickVoiceLoop();
+
+      // Unmute monitor for playback
+      setVolumeQuick(75);
+
+      const source = ctx.createBufferSource();
+      source.buffer = state.quickLoopBuffer;
+      source.loop = true;
+      source.playbackRate.value = (state.activePreset === 'chipmunk') ? 1.6 : 1.0;
+      source.connect(state.inputGainNode);
+      source.start(0);
+
+      state.quickLoopSourceNode = source;
+      state.quickLoopPlaying = true;
+      UI.btnQuickStop.style.display = 'inline-flex';
+      UI.btnRecord.disabled = false;
+      setEngineStatus('demo', 'Looping Your 3s Voice Sample');
+      showNotice('Your 3s voice sample is now looping! Click different filter presets to hear your own voice transform.', 'success');
+    }
+
+    function stopQuickVoiceLoop() {
+      if (state.quickLoopSourceNode) {
+        try { state.quickLoopSourceNode.stop(); state.quickLoopSourceNode.disconnect(); } catch (e) {}
+        state.quickLoopSourceNode = null;
+      }
+      state.quickLoopPlaying = false;
+      UI.btnQuickStop.style.display = 'none';
+    }
+
+    /* --------------------------------------------------------------------------
+       Source 4: Audio File Upload
+       -------------------------------------------------------------------------- */
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.currentTarget.classList.add('dragover');
+    }
+
+    function handleDragLeave(e) {
+      e.currentTarget.classList.remove('dragover');
+    }
+
+    function handleFileDrop(e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        processUploadedFile(e.dataTransfer.files[0]);
+      }
+    }
+
+    function handleAudioFileUpload(e) {
+      if (e.target.files && e.target.files[0]) {
+        processUploadedFile(e.target.files[0]);
+      }
+    }
+
+    async function processUploadedFile(file) {
+      const ctx = ensureAudioContext();
+      if (!ctx) return;
+
+      showNotice(`Loading ${file.name}...`, 'info');
+      const arrayBuf = await file.arrayBuffer();
+      try {
+        state.uploadedBuffer = await ctx.decodeAudioData(arrayBuf);
+        UI.uploadedFileName.textContent = file.name;
+        UI.uploadedFileInfo.style.display = 'flex';
+        showNotice(`File "${file.name}" loaded! Click Play to audition through voice filters.`, 'success');
+        playUploadedAudio();
+      } catch (err) {
+        console.error('Failed to decode uploaded audio:', err);
+        showNotice('Could not decode audio file. Please try another MP3 or WAV file.', 'warning');
+      }
+    }
+
+    function toggleUploadedAudioPlay() {
+      if (state.uploadedPlaying) {
+        stopUploadedAudio();
+      } else {
+        playUploadedAudio();
+      }
+    }
+
+    function playUploadedAudio() {
+      const ctx = ensureAudioContext();
+      if (!ctx || !state.uploadedBuffer) return;
+
+      stopSpokenDemo();
+      stopMicrophone();
+      stopQuickVoiceLoop();
+
+      setVolumeQuick(75);
+
+      const source = ctx.createBufferSource();
+      source.buffer = state.uploadedBuffer;
+      source.loop = true;
+      source.playbackRate.value = (state.activePreset === 'chipmunk') ? 1.6 : 1.0;
+      source.connect(state.inputGainNode);
+
+      source.onended = () => {
+        if (!source.loop) stopUploadedAudio();
+      };
+
+      source.start(0);
+      state.uploadedSourceNode = source;
+      state.uploadedPlaying = true;
+      UI.btnUploadedPlay.textContent = 'Pause';
+      UI.btnRecord.disabled = false;
+      setEngineStatus('demo', 'Playing Uploaded Audio File');
+    }
+
+    function stopUploadedAudio() {
+      if (state.uploadedSourceNode) {
+        try { state.uploadedSourceNode.stop(); state.uploadedSourceNode.disconnect(); } catch (e) {}
+        state.uploadedSourceNode = null;
+      }
+      state.uploadedPlaying = false;
+      UI.btnUploadedPlay.textContent = 'Play';
+    }
+
+    /* --------------------------------------------------------------------------
+       Volume & Monitoring Controls (Fixes "Beside original voice I can't hear")
+       -------------------------------------------------------------------------- */
+    function setVolumeQuick(pct) {
+      UI.sliderMonitoring.value = pct;
+      updateMonitorVolume(pct);
+    }
+
+    function updateMonitorVolume(val) {
+      ensureAudioContext();
+      const num = parseInt(val, 10);
+      UI.sliderVolVal.textContent = num === 0 ? '0% (Muted)' : num + '%';
+
+      if (state.monitorGainNode && state.audioCtx) {
+        // Natural logarithmic volume scaling
+        const gain = num === 0 ? 0 : Math.pow(num / 100, 2);
+        state.monitorGainNode.gain.setTargetAtTime(gain, state.audioCtx.currentTime, 0.02);
+      }
+    }
+
+    function updateInputGain(val) {
+      ensureAudioContext();
+      const mult = (val / 100).toFixed(1);
+      UI.sliderGainVal.textContent = mult + 'x';
+
+      if (state.inputGainNode && state.audioCtx) {
+        state.inputGainNode.gain.setTargetAtTime(parseFloat(mult), state.audioCtx.currentTime, 0.02);
+      }
+    }
+
+    /* --------------------------------------------------------------------------
+       MediaRecorder (Records Processed Voice Output)
+       -------------------------------------------------------------------------- */
+    function getBestAudioMimeType() {
+      const candidates = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/mp4',
+        'audio/aac'
+      ];
+      for (let i = 0; i < candidates.length; i++) {
+        if (window.MediaRecorder && MediaRecorder.isTypeSupported(candidates[i])) {
+          return candidates[i];
+        }
+      }
+      return '';
+    }
+
+    function startRecording() {
+      const ctx = ensureAudioContext();
+      if (!ctx || !state.recordDestNode) {
+        showNotice('Audio stream not available for recording.', 'warning');
+        return;
+      }
+
+      const mimeType = getBestAudioMimeType();
+      state.recordedChunks = [];
+
+      try {
+        const options = mimeType ? { mimeType } : undefined;
+        state.mediaRecorder = new MediaRecorder(state.recordDestNode.stream, options);
+      } catch (err) {
+        console.error('MediaRecorder initialization failed:', err);
+        showNotice('MediaRecorder error: ' + err.message, 'warning');
+        return;
+      }
+
+      state.mediaRecorder.ondataavailable = e => {
+        if (e.data && e.data.size > 0) state.recordedChunks.push(e.data);
+      };
+
+      state.mediaRecorder.onstop = finalizeRecording;
+      state.mediaRecorder.start(100);
+      state.recordingStartTime = Date.now();
+
+      UI.btnRecord.disabled = true;
+      UI.btnStopRecord.disabled = false;
+      UI.recIndicator.style.display = 'flex';
+      UI.recIdleNotice.style.display = 'none';
+      setEngineStatus('recording', 'Recording Processed Output');
+
+      state.recordingTimerId = setInterval(() => {
+        const elapsed = Date.now() - state.recordingStartTime;
+        const totalSec = Math.floor(elapsed / 1000);
+        const mins = String(Math.floor(totalSec / 60)).padStart(2, '0');
+        const secs = String(totalSec % 60).padStart(2, '0');
+        const tenths = Math.floor((elapsed % 1000) / 100);
+        UI.recTimerDisplay.textContent = `${mins}:${secs}.${tenths}`;
+      }, 100);
+
+      UI.recCodecInfo.textContent = `Recording with ${state.mediaRecorder.mimeType || 'audio'} codec &bull; Preset: ${state.activePreset}`;
+    }
+
+    function stopRecording() {
+      if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+        state.mediaRecorder.stop();
+      }
+      if (state.recordingTimerId) {
+        clearInterval(state.recordingTimerId);
+        state.recordingTimerId = null;
+      }
+
+      UI.btnRecord.disabled = false;
+      UI.btnStopRecord.disabled = true;
+      UI.recIndicator.style.display = 'none';
+      UI.recIdleNotice.style.display = 'block';
+
+      if (state.micStream) {
+        setEngineStatus('active', 'Microphone Live');
+      } else if (state.demoPlaying || state.quickLoopPlaying || state.uploadedPlaying) {
+        setEngineStatus('demo', 'Audio Source Active');
+      } else {
+        setEngineStatus('idle', 'Engine Ready');
+      }
+    }
+
+    function finalizeRecording() {
+      const mime = state.mediaRecorder.mimeType || 'audio/webm';
+      const blob = new Blob(state.recordedChunks, { type: mime });
+
+      if (state.previousObjectUrl) {
+        URL.revokeObjectURL(state.previousObjectUrl);
+        state.previousObjectUrl = null;
+      }
+
+      const audioUrl = URL.createObjectURL(blob);
+      state.previousObjectUrl = audioUrl;
+
+      UI.audioPlayer.src = audioUrl;
+      UI.audioPlayer.style.display = 'block';
+
+      const ext = mime.includes('mp4') ? 'mp4' : mime.includes('ogg') ? 'ogg' : 'webm';
+      const filename = `echoshift-${state.activePreset}-${Date.now()}.${ext}`;
+      UI.btnDownload.href = audioUrl;
+      UI.btnDownload.download = filename;
+      UI.btnDownload.style.display = 'inline-flex';
+
+      showNotice(`Recording finished! Exported ${(blob.size / 1024).toFixed(1)} KB clip. Click Play or Download below.`, 'success');
+    }
+
+    /* --------------------------------------------------------------------------
+       Real-Time Oscilloscope & Spectrum Visualizer
+       -------------------------------------------------------------------------- */
+    let lastFrameTime = performance.now();
+    let frameCount = 0;
+    let fps = 60;
+
+    function setVisualizerMode(mode) {
+      state.visualizerMode = mode;
+      document.getElementById('btnModeWaveform').classList.toggle('active', mode === 'waveform');
+      document.getElementById('btnModeFrequency').classList.toggle('active', mode === 'frequency');
+    }
+
+    function startVisualizerLoop() {
+      const canvas = UI.canvas;
+      const ctx2d = canvas.getContext('2d');
+
+      function render() {
+        requestAnimationFrame(render);
+
+        const now = performance.now();
+        frameCount++;
+        if (now - lastFrameTime >= 1000) {
+          fps = frameCount;
+          frameCount = 0;
+          lastFrameTime = now;
+          UI.statFps.textContent = fps + ' FPS';
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        if (canvas.width !== rect.width || canvas.height !== rect.height) {
+          canvas.width = rect.width;
+          canvas.height = rect.height;
+        }
+
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx2d.fillStyle = '#060910';
+        ctx2d.fillRect(0, 0, width, height);
+
+        // Background Grid
+        ctx2d.strokeStyle = 'rgba(28, 39, 60, 0.45)';
+        ctx2d.lineWidth = 1;
+        ctx2d.beginPath();
+        for (let y = 0; y < height; y += 30) {
+          ctx2d.moveTo(0, y);
+          ctx2d.lineTo(width, y);
+        }
+        for (let x = 0; x < width; x += 40) {
+          ctx2d.moveTo(x, 0);
+          ctx2d.lineTo(x, height);
+        }
+        ctx2d.stroke();
+
+        if (!state.analyserNode) {
+          ctx2d.strokeStyle = 'rgba(56, 189, 248, 0.25)';
+          ctx2d.lineWidth = 2;
+          ctx2d.beginPath();
+          ctx2d.moveTo(0, height / 2);
+          ctx2d.lineTo(width, height / 2);
+          ctx2d.stroke();
+          return;
+        }
+
+        const bufferLength = state.analyserNode.frequencyBinCount;
+        const dataArray = new Uint8Array(bufferLength);
+
+        if (state.visualizerMode === 'waveform') {
+          state.analyserNode.getByteTimeDomainData(dataArray);
+
+          let sumSquares = 0;
+          for (let i = 0; i < bufferLength; i++) {
+            const norm = (dataArray[i] - 128) / 128;
+            sumSquares += norm * norm;
+          }
+          const rms = Math.sqrt(sumSquares / bufferLength);
+          const db = rms > 0.0001 ? Math.round(20 * Math.log10(rms)) : -60;
+          UI.statLevel.textContent = `RMS: ${db} dB`;
+
+          ctx2d.shadowBlur = 10;
+          ctx2d.shadowColor = '#38bdf8';
+          ctx2d.lineWidth = 2.4;
+
+          const gradient = ctx2d.createLinearGradient(0, 0, width, 0);
+          gradient.addColorStop(0, '#38bdf8');
+          gradient.addColorStop(0.5, '#818cf8');
+          gradient.addColorStop(1, '#38bdf8');
+          ctx2d.strokeStyle = gradient;
+
+          ctx2d.beginPath();
+          const sliceWidth = width / bufferLength;
+          let x = 0;
+
+          for (let i = 0; i < bufferLength; i++) {
+            const v = dataArray[i] / 128.0;
+            const y = (v * height) / 2;
+            if (i === 0) {
+              ctx2d.moveTo(x, y);
+            } else {
+              ctx2d.lineTo(x, y);
+            }
+            x += sliceWidth;
+          }
+
+          ctx2d.stroke();
+          ctx2d.shadowBlur = 0;
+        } else {
+          state.analyserNode.getByteFrequencyData(dataArray);
+
+          const barCount = Math.min(64, bufferLength);
+          const barWidth = (width / barCount) - 2;
+          let x = 0;
+
+          const barGradient = ctx2d.createLinearGradient(0, height, 0, 0);
+          barGradient.addColorStop(0, 'rgba(56, 189, 248, 0.25)');
+          barGradient.addColorStop(0.7, '#38bdf8');
+          barGradient.addColorStop(1, '#818cf8');
+          ctx2d.fillStyle = barGradient;
+
+          for (let i = 0; i < barCount; i++) {
+            const barHeight = (dataArray[i] / 255) * (height - 10);
+            ctx2d.fillRect(x, height - barHeight, barWidth, barHeight);
+            x += barWidth + 2;
+          }
+        }
+      }
+
+      render();
+    }
+
+    /* --------------------------------------------------------------------------
+       UI Helpers & Status Badges
+       -------------------------------------------------------------------------- */
+    function setEngineStatus(type, message) {
+      UI.statusText.textContent = message;
+      UI.statusDot.className = 'status-dot';
+      if (type === 'active') UI.statusDot.classList.add('active');
+      if (type === 'recording') UI.statusDot.classList.add('recording');
+      if (type === 'demo') UI.statusDot.classList.add('demo');
+    }
+
+    function showNotice(text, type = 'info') {
+      UI.noticeText.innerHTML = text;
+      UI.noticeBanner.className = `banner-alert banner-${type}`;
+    }
+
+    window.addEventListener('load', () => {
+      const rect = UI.canvas.getBoundingClientRect();
+      UI.canvas.width = rect.width;
+      UI.canvas.height = rect.height;
+    });
+  </script>
+</body>
+</html>

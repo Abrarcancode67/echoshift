@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light dark;
+
+  /* Required Brand tokens */
+  --paper: #fbfaf6;
+  --ink: #191b1f;
+  --accent: #1e40af;
+
+  /* App Sizing Specs */
+  --sidebar-w: 17rem;
+  --radius-card: 1.25rem;
+  --radius-button: 0.75rem;
+  --pad-card: 1.5rem;
+  --gap-grid: 1.25rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --paper: #0b0f19;
+    --ink: #f3f4f6;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--paper);
+  color: var(--ink);
+  font-family: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100svh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Fraunces for headlines and card titles */
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Fraunces', Georgia, serif;
+}
+
+/* Manrope for body, labels, and UI controls */
+.font-body {
+  font-family: 'Manrope', system-ui, sans-serif;
+}
+
+/* Safe-area insets */
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}

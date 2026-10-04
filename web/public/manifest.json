@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "EchoShift - Real-Time Voice Changer & Audio Visualizer",
+  "short_name": "EchoShift",
+  "description": "In-Browser Real-Time Voice Changer & Audio Visualizer with live effects, recording, and waveform display.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "min_viewport_width": 320,
+  "theme_color": "#090d16",
+  "background_color": "#090d16",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
